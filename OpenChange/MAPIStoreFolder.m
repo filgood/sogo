@@ -449,16 +449,11 @@ Class NSExceptionK, MAPIStoreFAIMessageK, MAPIStoreMessageTableK, MAPIStoreFAIMe
   return rc;
 }
 
-- (void) deleteFolderImpl
+- (int) deleteFolder
 {
   // TODO: raise exception in case underlying delete fails?
   // [propsMessage delete];
   [dbFolder delete];
-}
-
-- (int) deleteFolder
-{
-  [self deleteFolderImpl];
 
   [self cleanupCaches];
 
@@ -921,16 +916,23 @@ Class NSExceptionK, MAPIStoreFAIMessageK, MAPIStoreMessageTableK, MAPIStoreFAIMe
             }
 
           if (isMove)
-            {
-              fmid = [mapping idFromURL: [self url]];
-              [mapping unregisterURLWithID: fmid];
-              [self deleteFolderImpl];
-              [mapping registerURL: [newFolder url]
-                            withID: fmid];
-            }
+              [self deleteFolder];
+
           [targetFolder cleanupCaches];
         }
       [self cleanupCaches];
+
+      /* We perform the mapping operations at the
+         end as objectId is required to be available
+         until the caches are cleaned up */
+      if (isMove && rc == MAPISTORE_SUCCESS)
+        {
+          fmid = [mapping idFromURL: [self url]];
+          [mapping unregisterURLWithID: fmid];
+          [mapping registerURL: [newFolder url]
+                        withID: fmid];
+        }
+
     }
   else
     rc = MAPISTORE_ERR_DENIED;
