@@ -65,6 +65,11 @@
   [entity removeAllExceptionRules];
   [entity removeAllExceptionDates];
 
+  if (rp == NULL) {
+    /* No recurrence pattern to set, so we return after removing the old ones */
+    return;
+  }
+
   rule = [iCalRecurrenceRule elementWithTag: @"rrule"];
   [entity addToRecurrenceRules: rule];
 
