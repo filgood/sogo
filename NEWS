@@ -7,6 +7,7 @@ Enhancements
  - Appointment color and importance work now between Outlooks
 
 Bug fixes
+ - Be able to have group mail as to, cc, bcc or from
  - Fix Outlook crashes when modifying the view of a folder
  - Fix server side crash when reading some recurrence appointments
 
