@@ -180,10 +180,11 @@ rtf2html (NSData *compressedRTF)
 {
   NSMutableDictionary *recipientProperties;
   enum MAPITAGS prop_tag;
-  //  char *display_name = NULL;
+  char *display_name = NULL;
   char *email = NULL;
-  char *object_type = NULL;
+  //  char *object_type = NULL;
   char *smtp_address = NULL;
+  bool recipientEmailSet = false;
   SOGoUser *recipientUser;
   NSUInteger count;
   id value;
@@ -194,15 +195,15 @@ rtf2html (NSData *compressedRTF)
     {
       prop_tag = columns->aulPropTag[count];
       switch(prop_tag) {
-      // case PidTagDisplayName:   
-      //   display_name = recipient->data[count];  
-      //   break;
+      case PidTagDisplayName:   
+        display_name = recipient->data[count];  
+        break;
       case PidTagEmailAddress:
         email = recipient->data[count];
         break;
-      case PidTagObjectType:
-        object_type = recipient->data[count];
-        break;
+      // case PidTagObjectType:
+      //   object_type = recipient->data[count];
+      //   break;
       case PidTagSmtpAddress:
         smtp_address = recipient->data[count];
         break;
@@ -214,20 +215,19 @@ rtf2html (NSData *compressedRTF)
         {
           value = NSObjectFromValuePointer (prop_tag,
                                             recipient->data[count]);
-          if (value)
-            [recipientProperties setObject: value
-                                    forKey: MAPIPropertyKey (prop_tag)];
+          if (value) 
+            {
+              [recipientProperties setObject: value
+                                      forKey: MAPIPropertyKey (prop_tag)];
+            }       
         }
     }
-
-  //  printf("XXX object type : %s\n", object_type);
 
   if (recipient->username)
     {
       value = [NSString stringWithUTF8String: recipient->username];
       [recipientProperties setObject: value forKey: @"x500dn"];
 
-      if (*object_type == 6) {
       recipientUser = [SOGoUser userWithLogin: [value lowercaseString]];
       if (recipientUser)
         {
@@ -236,8 +236,10 @@ rtf2html (NSData *compressedRTF)
             [recipientProperties setObject: value forKey: @"fullName"];
           value = [[recipientUser allEmails] objectAtIndex: 0];
           if ([value length] > 0)
-            [recipientProperties setObject: value forKey: @"email"];
-        }     
+            {
+              [recipientProperties setObject: value forKey: @"email"];
+              recipientEmailSet = true;
+            }
       }
     }
   else
@@ -252,20 +254,20 @@ rtf2html (NSData *compressedRTF)
         {
           value = [NSString stringWithUTF8String: email];
           if ([value length] > 0)
-            [recipientProperties setObject: value forKey: @"email"];
+            {
+              [recipientProperties setObject: value forKey: @"email"];
+              recipientEmailSet = true;
+            }
         }
     }
 
-  /* As fallback we use smtp address property */
-  if (![recipientProperties valueForKey:  @"email"])
-    {
-      if (smtp_address) 
-        {
-          value = [NSString stringWithUTF8String: smtp_address];
-          [recipientProperties setObject: value  forKey: @"email"];  
-        }
-    }
-   
+    /* As fallback we use smtp address property */
+    if (!recipientEmailSet && smtp_address) 
+      {
+        value = [NSString stringWithUTF8String: smtp_address];
+        [recipientProperties setObject: value  forKey: @"email"];  
+      }
+
   return recipientProperties;
 }
 
