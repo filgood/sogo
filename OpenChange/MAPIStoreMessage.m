@@ -54,6 +54,7 @@
 #include <gen_ndr/exchange.h>
 #include <mapistore/mapistore.h>
 #include <mapistore/mapistore_errors.h>
+#include <stdio.h> // XXX
 
 static Class MAPIStoreFolderK, MAPIStoreEmbeddedMessageK;
 
@@ -178,17 +179,55 @@ rtf2html (NSData *compressedRTF)
                           andColumns: (struct SPropTagArray *) columns
 {
   NSMutableDictionary *recipientProperties;
+  enum MAPITAGS prop_tag;
+  //  char *display_name = NULL;
+  char *email = NULL;
+  char *object_type = NULL;
+  char *smtp_address = NULL;
   SOGoUser *recipientUser;
   NSUInteger count;
   id value;
 
   recipientProperties = [NSMutableDictionary dictionaryWithCapacity: columns->cValues + 2];
 
+  for (count = 0; count < columns->cValues; count++)
+    {
+      prop_tag = columns->aulPropTag[count];
+      switch(prop_tag) {
+      // case PidTagDisplayName:   
+      //   display_name = recipient->data[count];  
+      //   break;
+      case PidTagEmailAddress:
+        email = recipient->data[count];
+        break;
+      case PidTagObjectType:
+        object_type = recipient->data[count];
+        break;
+      case PidTagSmtpAddress:
+        smtp_address = recipient->data[count];
+        break;
+      default:
+        break;
+      }
+
+      if (recipient->data[count])
+        {
+          value = NSObjectFromValuePointer (prop_tag,
+                                            recipient->data[count]);
+          if (value)
+            [recipientProperties setObject: value
+                                    forKey: MAPIPropertyKey (prop_tag)];
+        }
+    }
+
+  //  printf("XXX object type : %s\n", object_type);
+
   if (recipient->username)
     {
       value = [NSString stringWithUTF8String: recipient->username];
       [recipientProperties setObject: value forKey: @"x500dn"];
 
+      if (*object_type == 6) {
       recipientUser = [SOGoUser userWithLogin: [value lowercaseString]];
       if (recipientUser)
         {
@@ -198,36 +237,35 @@ rtf2html (NSData *compressedRTF)
           value = [[recipientUser allEmails] objectAtIndex: 0];
           if ([value length] > 0)
             [recipientProperties setObject: value forKey: @"email"];
-        }
+        }     
+      }
     }
   else
     {
-      if (recipient->data[0])
+      if (display_name)
         {
-          value = [NSString stringWithUTF8String: recipient->data[0]];
+          value = [NSString stringWithUTF8String: display_name];
           if ([value length] > 0)
             [recipientProperties setObject: value forKey: @"fullName"];
         }
-      if (recipient->data[1])
+      if (email)
         {
-          value = [NSString stringWithUTF8String: recipient->data[1]];
+          value = [NSString stringWithUTF8String: email];
           if ([value length] > 0)
             [recipientProperties setObject: value forKey: @"email"];
         }
     }
 
-  for (count = 0; count < columns->cValues; count++)
+  /* As fallback we use smtp address property */
+  if (![recipientProperties valueForKey:  @"email"])
     {
-      if (recipient->data[count])
+      if (smtp_address) 
         {
-          value = NSObjectFromValuePointer (columns->aulPropTag[count],
-                                            recipient->data[count]);
-          if (value)
-            [recipientProperties setObject: value
-                                    forKey: MAPIPropertyKey (columns->aulPropTag[count])];
+          value = [NSString stringWithUTF8String: smtp_address];
+          [recipientProperties setObject: value  forKey: @"email"];  
         }
     }
-
+   
   return recipientProperties;
 }
 
