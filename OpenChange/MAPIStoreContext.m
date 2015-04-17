@@ -521,11 +521,9 @@ static inline NSURL *CompleteURLFromMapistoreURI (const char *uri)
 - (uint64_t) idForObjectWithKey: (NSString *) key
                     inFolderURL: (NSString *) folderURL
 {
-  NSString *childURL, *owner;
+  NSString *childURL;
   MAPIStoreMapping *mapping;
   uint64_t mappingId;
-  uint32_t contextId;
-  void *rootObject;
 
   if (key)
     childURL = [NSString stringWithFormat: @"%@%@", folderURL,
@@ -540,13 +538,6 @@ static inline NSURL *CompleteURLFromMapistoreURI (const char *uri)
       //      childURL];
       mapistore_indexing_get_new_folderID (connInfo->mstore_ctx, &mappingId);
       [mapping registerURL: childURL withID: mappingId];
-      contextId = 0;
-
-      mapistore_search_context_by_uri (connInfo->mstore_ctx, [folderURL UTF8String],
-                                       &contextId, &rootObject);
-      owner = [userContext username];
-      mapistore_indexing_record_add_mid (connInfo->mstore_ctx, contextId,
-                                         [owner UTF8String], mappingId);
     }
 
   return mappingId;
