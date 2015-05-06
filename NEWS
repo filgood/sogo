@@ -5,10 +5,11 @@ Enhancements
  - Synchronize events, contacts and tasks in reverse chronological order
 
 Bug fixes
+ - Recurrent all day events are now shown properly in Outlook
  - Outlook clients can use reply all functionality on multidomain environment
  - Optional attendes on events are now shown properly
 
-2.2.17a-zentyal1 (2014-04-15)
+2.2.17a-zentyal1 (2015-04-15)
 --------------------
 
 Bug fixes
