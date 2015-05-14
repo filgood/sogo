@@ -222,7 +222,7 @@ static Class NSStringK;
       if (!contactInfoAttribute)
         contactInfoAttribute = [dd ldapContactInfoAttribute];
       [contactInfoAttribute retain];
-      
+
       udQueryLimit = [udSource objectForKey: @"SOGoLDAPQueryLimit"];
       if (udQueryLimit)
         queryLimit = [udQueryLimit intValue];
@@ -251,7 +251,7 @@ static Class NSStringK;
 
       if ([udSource objectForKey: @"updateSambaNTLMPasswords"])
         updateSambaNTLMPasswords = [[udSource objectForKey: @"updateSambaNTLMPasswords"] boolValue];
-      
+
       ASSIGN(MSExchangeHostname, [udSource objectForKey: @"MSExchangeHostname"]);
     }
 
@@ -563,7 +563,7 @@ groupObjectClasses: (NSArray *) newGroupObjectClasses
                   didBind = [bindConnection bindWithMethod: @"simple"
                                                     binddn: userDN
                                                credentials: _pwd];
-                else  
+                else
                   didBind = [bindConnection bindWithMethod: @"simple"
                                                     binddn: userDN
                                                credentials: _pwd
@@ -619,14 +619,14 @@ groupObjectClasses: (NSArray *) newGroupObjectClasses
   NSArray *changes;
 
   BOOL didChange;
-  
+
   attr = [[NGLdapAttribute alloc] initWithAttributeName: theAttribute];
   [attr addStringValue: theValue];
-  
+
   mod = [NGLdapModification replaceModification: attr];
-  
+
   changes = [NSArray arrayWithObject: mod];
-  
+
   if ([bindConnection bindWithMethod: @"simple"
                               binddn: theUserDN
                          credentials: theUserPassword])
@@ -636,7 +636,7 @@ groupObjectClasses: (NSArray *) newGroupObjectClasses
     }
   else
     didChange = NO;
-  
+
   RELEASE(attr);
 
   return didChange;
@@ -649,7 +649,7 @@ groupObjectClasses: (NSArray *) newGroupObjectClasses
                     oldPassword: (NSString *) oldPassword
                     newPassword: (NSString *) newPassword
                            perr: (SOGoPasswordPolicyError *) perr
-  
+
 {
   NGLdapConnection *bindConnection;
   NSString *userDN;
@@ -696,7 +696,7 @@ groupObjectClasses: (NSArray *) newGroupObjectClasses
                     // We don't use a password policy - we simply use
                     // a modify-op to change the password
                     NSString* encryptedPass;
-                    
+
                     if ([_userPasswordAlgorithm isEqualToString: @"none"])
                       {
                         encryptedPass = newPassword;
@@ -705,7 +705,7 @@ groupObjectClasses: (NSArray *) newGroupObjectClasses
                       {
                         encryptedPass = [self _encryptPassword: newPassword];
                       }
-                    
+
                     if (encryptedPass != nil)
                       {
                         *perr = PolicyNoError;
@@ -725,7 +725,7 @@ groupObjectClasses: (NSArray *) newGroupObjectClasses
                                         userDN: userDN
                                       password: newPassword
                                     connection: bindConnection];
-                    
+
                     [self _ldapModifyAttribute: @"sambaLMPassword"
                                      withValue: [newPassword asLMHash]
                                         userDN: userDN
@@ -737,10 +737,17 @@ groupObjectClasses: (NSArray *) newGroupObjectClasses
       }
   NS_HANDLER
     {
-      [self logWithFormat: @"%@", localException];
+      if ([[localException name] isEqual: @"LDAPException"] && ([[localException reason] rangeOfString: @"0x13"].location != NSNotFound) )
+        {
+          *perr =  PolicyInsufficientPasswordQuality;
+        }
+      else
+        {
+          [self logWithFormat: @"%@", localException];
+        }
     }
   NS_ENDHANDLER ;
-  
+
   [bindConnection release];
   return didChange;
 }
@@ -866,11 +873,11 @@ groupObjectClasses: (NSArray *) newGroupObjectClasses
     [qs appendFormat: @" AND %@", _filter];
   qualifier = [EOQualifier qualifierWithQualifierFormat: qs];
 
-  if ([_scope caseInsensitiveCompare: @"BASE"] == NSOrderedSame) 
+  if ([_scope caseInsensitiveCompare: @"BASE"] == NSOrderedSame)
     entries = [ldapConnection baseSearchAtBaseDN: baseDN
                                        qualifier: qualifier
                                       attributes: attributes];
-  else if ([_scope caseInsensitiveCompare: @"ONE"] == NSOrderedSame) 
+  else if ([_scope caseInsensitiveCompare: @"ONE"] == NSOrderedSame)
     entries = [ldapConnection flatSearchAtBaseDN: baseDN
                                        qualifier: qualifier
                                       attributes: attributes];
@@ -1049,7 +1056,7 @@ groupObjectClasses: (NSArray *) newGroupObjectClasses
   ldifRecord = [ldapEntry asDictionary];
   [ldifRecord setObject: self forKey: @"source"];
   [ldifRecord setObject: [ldapEntry dn] forKey: @"dn"];
-  
+
   // We get our objectClass attribute values. We lowercase
   // everything for ease of search after.
   o = [ldapEntry objectClasses];
@@ -1193,7 +1200,7 @@ groupObjectClasses: (NSArray *) newGroupObjectClasses
         entries = [ldapConnection flatSearchAtBaseDN: baseDN
                                            qualifier: qualifier
                                           attributes: attributes];
-      else /* we do it like before */ 
+      else /* we do it like before */
         entries = [ldapConnection deepSearchAtBaseDN: baseDN
                                            qualifier: qualifier
                                           attributes: attributes];
@@ -1278,7 +1285,7 @@ groupObjectClasses: (NSArray *) newGroupObjectClasses
   NGLdapConnection *ldapConnection;
   NGLdapEntry *entry;
   NSString *login;
-  
+
   login = nil;
 
   ldapConnection = [self _ldapConnection];
@@ -1301,24 +1308,24 @@ groupObjectClasses: (NSArray *) newGroupObjectClasses
   EOQualifier *qualifier;
   NGLdapEntry *ldapEntry;
   NSString *s;
-    
+
   if ([theValue length] > 0 && [theAttributes count] > 0)
     {
       if ([theAttributes count] == 1)
 	{
 	    s = [NSString stringWithFormat: @"(%@='%@')",
 			  [theAttributes lastObject], SafeLDAPCriteria(theValue)];
-	    
+
 	}
       else
 	{
 	  NSString *fieldFormat;
-	  
+
 	  fieldFormat = [NSString stringWithFormat: @"(%%@='%@')", SafeLDAPCriteria(theValue)];
 	  s = [[theAttributes stringsWithFormat: fieldFormat]
 			 componentsJoinedByString: @" OR "];
 	}
-      
+
       qualifier = [EOQualifier qualifierWithQualifierFormat: s];
       ldapEntry = [self _lookupLDAPEntry: qualifier];
     }
@@ -1835,7 +1842,7 @@ _makeLDAPChanges (NGLdapConnection *ldapConnection,
                                      reason: @"user addressbooks"
                           @" are not supported"
                                    userInfo: nil];
-  
+
   return result;
 }
 
